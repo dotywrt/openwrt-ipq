@@ -145,5 +145,5 @@ jobs:
           generateReleaseNotes: true
           makeLatest: false
           artifacts: |
-            bin/targets/qualcommax/ipq807x/*
+            bin/targets/qualcommax/ipq807x/*.*
           token: "${{ secrets.GITHUB_TOKEN }}"

@@ -1,4 +1,4 @@
-name: Build AW1000 Big NSS Working K6.12
+name: AW1000-24.10-NSS
 on:
   workflow_dispatch:
 

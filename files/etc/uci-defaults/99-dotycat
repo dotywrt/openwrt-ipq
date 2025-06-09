@@ -1,0 +1,65 @@
+#!/bin/sh
+
+for section in $(uci show firewall | grep "=zone" | cut -d. -f2 | cut -d= -f1); do
+    name=$(uci get firewall.$section.name 2>/dev/null)
+    if [ "$name" = "wan" ]; then
+        uci del_list firewall.$section.network='wan'
+        uci del_list firewall.$section.network='wan6'
+
+        if ! uci get firewall.$section.network | grep -q "'wwan'"; then
+            uci add_list firewall.$section.network='wwan'
+        fi
+    fi
+done
+
+uci commit firewall
+
+# Nftables TTL
+NFT_DIR="/etc/nftables.d"
+NFT_FILE="$NFT_DIR/ttlcanger.nft"
+mkdir -p "$NFT_DIR"
+rm -f "$NFT_DIR"/*
+cat << 'EOF' > "$NFT_FILE"
+chain mangle_prerouting_ttl64 {
+  type filter hook prerouting priority 300; policy accept;
+  counter ip ttl set 64
+}
+chain mangle_postrouting_ttl64 {
+  type filter hook postrouting priority 300; policy accept;
+  counter ip ttl set 64
+}
+chain mangle_prerouting_hoplimit64 {
+  type filter hook prerouting priority 300; policy accept;
+  counter ip6 hoplimit set 64
+}
+chain mangle_postrouting_hoplimit64 {
+  type filter hook postrouting priority 300; policy accept;
+  counter ip6 hoplimit set 64
+}
+EOF
+
+# Append modem
+RC_LOCAL="/etc/rc.local"
+LINE='echo "AT+CFUN=1" > /dev/ttyUSB3'
+grep -qF "$LINE" "$RC_LOCAL" || sed -i "/^exit 0/i $LINE" "$RC_LOCAL"
+
+# Configure wwan interface
+uci delete network.wan 2>/dev/null
+uci delete network.wan6 2>/dev/null
+
+uci set network.wwan='interface'
+uci set network.wwan.proto='quectel'
+uci set network.wwan.auth='none'
+uci set network.wwan.delay='5'
+uci set network.wwan.mtu='1500'
+uci set network.wwan.pdptype='ipv4v6'
+uci set network.wwan.device='/dev/cdc-wdm0'
+uci set network.wwan.apn='internet'
+uci add_list network.wwan.dns='1.1.1.1'
+uci add_list network.wwan.dns='1.0.0.1'
+
+uci commit network
+
+echo "AT+CFUN=1" > /dev/ttyUSB3
+
+exit 0

@@ -137,6 +137,12 @@ jobs:
       - name: Get the current date
         run: echo "NOW=$(date +%F-%H%M)" >> $GITHUB_ENV
 
+      - name: Full backup
+        run: |
+          tar -czvf full-bin.tar.gz .
+          mkdir backup
+          cp full-bin.tar.gz backup/full-bin.tar.gz
+
       - name: Create a release
         uses: ncipollo/release-action@v1
         with:
@@ -145,5 +151,6 @@ jobs:
           generateReleaseNotes: true
           makeLatest: false
           artifacts: |
+            backup/*
             bin/targets/qualcommax/ipq807x/*.*
           token: "${{ secrets.GITHUB_TOKEN }}"

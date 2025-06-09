@@ -139,9 +139,8 @@ jobs:
 
       - name: Full backup
         run: |
-          tar -czvf full-bin.tar.gz .
-          mkdir backup
-          cp full-bin.tar.gz backup/full-bin.tar.gz
+          mkdir -p backup
+          tar -czvf backup/${{ steps.vars.outputs.archive_name }} $(find . -maxdepth 1 \( -type f -o -name 'bin' -o -name 'feeds' \))
 
       - name: Create a release
         uses: ncipollo/release-action@v1

@@ -1,0 +1,23 @@
+name: Create Archive
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main-nss
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Create archive of top-level files + bin and feeds
+        run: |
+          mkdir -p backup
+          tar -czvf backup/archive.tar.gz $(find . -maxdepth 1 \( -type f -o -name 'bin' -o -name 'feeds' \))
+          
+      - name: Show archive info
+        run: ls -lh backup/

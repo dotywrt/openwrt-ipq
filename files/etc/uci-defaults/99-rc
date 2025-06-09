@@ -1,8 +1,0 @@
-#!/bin/sh
-
-RC_LOCAL="/etc/rc.local"
-LINE='echo "AT+CFUN=1" > /dev/ttyUSB3'
-
-grep -qF "$LINE" "$RC_LOCAL" || sed -i "/^exit 0/i $LINE" "$RC_LOCAL"
-
-exit 0

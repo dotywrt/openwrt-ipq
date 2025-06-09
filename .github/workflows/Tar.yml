@@ -14,29 +14,27 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Set date-based archive and tag names
+      - name: Set tag and archive name
+        id: vars
         run: |
-          DATE=$(date +%Y-%m-%d)
-          echo "ARCHIVE_NAME=archive-${DATE}.tar.gz" >> $GITHUB_ENV
-          echo "TAG_NAME=backup-${DATE}" >> $GITHUB_ENV
+          echo "TAG_NAME=backup-$(date +%Y-%m-%d)" >> $GITHUB_ENV
+          echo "ARCHIVE_NAME=archive-$(date +%Y-%m-%d).tar.gz" >> $GITHUB_ENV
 
-      - name: Create backup archive
+      - name: Create archive of top-level files and bin/feeds
         run: |
           mkdir -p backup
-          tar -czvf backup/$ARCHIVE_NAME $(find . -maxdepth 1 \( -type f -o -name 'bin' -o -name 'feeds' \))
+          tar -czvf backup/${{ env.ARCHIVE_NAME }} $(find . -maxdepth 1 \( -type f -o -name 'bin' -o -name 'feeds' \))
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ env.TAG_NAME }}
           name: "Backup on ${{ env.TAG_NAME }}"
-          body: "Automated backup archive created on ${{ env.TAG_NAME }}"
-          draft: false
-          prerelease: false
+          body: "Automated backup created on ${{ env.TAG_NAME }}"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Upload archive to Release
+      - name: Upload archive to release
         uses: softprops/action-gh-release@v2
         with:
           files: backup/${{ env.ARCHIVE_NAME }}

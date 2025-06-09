@@ -1,23 +1,42 @@
-name: Create Archive
+name: Archive and Release
 
 on:
   workflow_dispatch:
   push:
     branches:
-      - main-nss
-
+      - main-nss 
+      
 jobs:
   backup:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Create archive of top-level files + bin and feeds
+      - name: Set archive name
+        run: echo "ARCHIVE_NAME=archive-$(date +%Y-%m-%d).tar.gz" >> $GITHUB_ENV
+
+      - name: Create backup archive
         run: |
           mkdir -p backup
-          tar -czvf backup/archive.tar.gz $(find . -maxdepth 1 \( -type f -o -name 'bin' -o -name 'feeds' \))
-          
-      - name: Show archive info
-        run: ls -lh backup/
+          tar -czvf backup/$ARCHIVE_NAME $(find . -maxdepth 1 \( -type f -o -name 'bin' -o -name 'feeds' \))
+
+      - name: Create GitHub Release
+        id: create_release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: backup-$(date +%Y-%m-%d)
+          name: "Backup on $(date +%Y-%m-%d)"
+          body: "Automated backup archive created on $(date +%Y-%m-%d)"
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload archive to Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: backup/${{ env.ARCHIVE_NAME }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

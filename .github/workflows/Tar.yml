@@ -14,29 +14,32 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Set tag and archive name
+      - name: Set variables with date and time
         id: vars
         run: |
-          echo "TAG_NAME=backup-$(date +%Y-%m-%d)" >> $GITHUB_ENV
-          echo "ARCHIVE_NAME=archive-$(date +%Y-%m-%d).tar.gz" >> $GITHUB_ENV
+          TAG_NAME=backup-$(date +%Y-%m-%d-%H-%M)
+          ARCHIVE_NAME=archive-${TAG_NAME}.tar.gz
+          echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
+          echo "archive_name=$ARCHIVE_NAME" >> $GITHUB_OUTPUT
 
-      - name: Create archive of top-level files and bin/feeds
+      - name: Create backup archive
         run: |
           mkdir -p backup
-          tar -czvf backup/${{ env.ARCHIVE_NAME }} $(find . -maxdepth 1 \( -type f -o -name 'bin' -o -name 'feeds' \))
+          tar -czvf backup/${{ steps.vars.outputs.archive_name }} $(find . -maxdepth 1 \( -type f -o -name 'bin' -o -name 'feeds' \))
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ env.TAG_NAME }}
-          name: "Backup on ${{ env.TAG_NAME }}"
-          body: "Automated backup created on ${{ env.TAG_NAME }}"
+          tag_name: ${{ steps.vars.outputs.tag_name }}
+          name: "Backup ${{ steps.vars.outputs.tag_name }}"
+          body: "Automated backup created on ${{ steps.vars.outputs.tag_name }}"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload archive to release
         uses: softprops/action-gh-release@v2
         with:
-          files: backup/${{ env.ARCHIVE_NAME }}
+          files: backup/${{ steps.vars.outputs.archive_name }}
+          tag_name: ${{ steps.vars.outputs.tag_name }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

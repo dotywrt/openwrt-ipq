@@ -4,8 +4,8 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - main-nss 
-      
+      - main-nss
+
 jobs:
   backup:
     runs-on: ubuntu-latest
@@ -14,8 +14,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Set archive name
-        run: echo "ARCHIVE_NAME=archive-$(date +%Y-%m-%d).tar.gz" >> $GITHUB_ENV
+      - name: Set date-based archive and tag names
+        run: |
+          DATE=$(date +%Y-%m-%d)
+          echo "ARCHIVE_NAME=archive-${DATE}.tar.gz" >> $GITHUB_ENV
+          echo "TAG_NAME=backup-${DATE}" >> $GITHUB_ENV
 
       - name: Create backup archive
         run: |
@@ -23,12 +26,11 @@ jobs:
           tar -czvf backup/$ARCHIVE_NAME $(find . -maxdepth 1 \( -type f -o -name 'bin' -o -name 'feeds' \))
 
       - name: Create GitHub Release
-        id: create_release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: backup-$(date +%Y-%m-%d)
-          name: "Backup on $(date +%Y-%m-%d)"
-          body: "Automated backup archive created on $(date +%Y-%m-%d)"
+          tag_name: ${{ env.TAG_NAME }}
+          name: "Backup on ${{ env.TAG_NAME }}"
+          body: "Automated backup archive created on ${{ env.TAG_NAME }}"
           draft: false
           prerelease: false
         env:

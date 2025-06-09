@@ -1,0 +1,5 @@
+#!/bin/sh
+
+sed -i "/list network 'wan6'/d" /etc/config/firewall
+sed -i "/list network 'wwan6'/d" /etc/config/firewall
+sed -i "s/list network 'wan'/list network 'wwan'/g" /etc/config/firewall

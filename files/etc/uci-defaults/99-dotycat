@@ -15,28 +15,28 @@ done
 uci commit firewall
 
 # Nftables TTL
-NFT_DIR="/etc/nftables.d"
-NFT_FILE="$NFT_DIR/ttlcanger.nft"
-mkdir -p "$NFT_DIR"
-rm -f "$NFT_DIR"/*
-cat << 'EOF' > "$NFT_FILE"
-chain mangle_prerouting_ttl64 {
-  type filter hook prerouting priority 300; policy accept;
-  counter ip ttl set 64
-}
-chain mangle_postrouting_ttl64 {
-  type filter hook postrouting priority 300; policy accept;
-  counter ip ttl set 64
-}
-chain mangle_prerouting_hoplimit64 {
-  type filter hook prerouting priority 300; policy accept;
-  counter ip6 hoplimit set 64
-}
-chain mangle_postrouting_hoplimit64 {
-  type filter hook postrouting priority 300; policy accept;
-  counter ip6 hoplimit set 64
-}
-EOF
+# NFT_DIR="/etc/nftables.d"
+# NFT_FILE="$NFT_DIR/ttlcanger.nft"
+# mkdir -p "$NFT_DIR"
+# rm -f "$NFT_DIR"/*
+# cat << 'EOF' > "$NFT_FILE"
+# chain mangle_prerouting_ttl64 {
+#   type filter hook prerouting priority 300; policy accept;
+#   counter ip ttl set 64
+# }
+# chain mangle_postrouting_ttl64 {
+#   type filter hook postrouting priority 300; policy accept;
+#   counter ip ttl set 64
+# }
+# chain mangle_prerouting_hoplimit64 {
+#   type filter hook prerouting priority 300; policy accept;
+#   counter ip6 hoplimit set 64
+# }
+# chain mangle_postrouting_hoplimit64 {
+#   type filter hook postrouting priority 300; policy accept;
+#   counter ip6 hoplimit set 64
+# }
+# EOF
 
 # Append modem
 RC_LOCAL="/etc/rc.local"

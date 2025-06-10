@@ -140,7 +140,10 @@ jobs:
       - name: Full backup
         run: |
           mkdir -p backup
-          tar -czvf backup/${{ steps.vars.outputs.archive_name }} $(find . -maxdepth 1 \( -type f -o -name 'bin' -o -name 'feeds' \))
+          tar czf backup/backup.tar.gz \
+          key-build.pub key-build key-build.ucert key-build.ucert.revoke \
+          feeds.conf.default .config \
+          bin/ feeds/
 
       - name: Create a release
         uses: ncipollo/release-action@v1

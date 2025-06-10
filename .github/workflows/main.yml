@@ -137,22 +137,18 @@ jobs:
       - name: Get the current date
         run: echo "NOW=$(date +%F-%H%M)" >> $GITHUB_ENV
 
+      - name: Copy Bin File & SSH Key
+        run: |
+          makedir -p backup
+          cp -r bin backup/bin
+          cp key-build.pub key-build key-build.ucert key-build.ucert.revoke \
+          feeds.conf.default .config backup/
+
       - name: Compressing full package into tar.gz
         run: |
-          mkdir -p backup
-          FILES=""
-          for item in \
-            key-build.pub key-build key-build.ucert key-build.ucert.revoke \
-            feeds.conf.default .config \
-            bin feeds; do
-            [ -e "$item" ] && FILES="$FILES $item"
-          done
-
-          if [ -n "$FILES" ]; then
-            tar czf backup/AW1000-full-package.tar.gz $FILES
-          else
-            echo "No files or directories to back up."
-          fi
+          mkdir -p upload
+          tar czf AW1000-full-package.tar.gz backup
+          cp AW1000-full-package.tar.gz upload/
           
       - name: Create a release
         uses: ncipollo/release-action@v1

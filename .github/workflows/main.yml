@@ -137,14 +137,23 @@ jobs:
       - name: Get the current date
         run: echo "NOW=$(date +%F-%H%M)" >> $GITHUB_ENV
 
-      - name: Full backup
+      - name: Compressing full package into tar.gz
         run: |
           mkdir -p backup
-          tar czf backup/backup.tar.gz \
-          key-build.pub key-build key-build.ucert key-build.ucert.revoke \
-          feeds.conf.default .config \
-          bin/ feeds/
+          FILES=""
+          for item in \
+            key-build.pub key-build key-build.ucert key-build.ucert.revoke \
+            feeds.conf.default .config \
+            bin feeds; do
+            [ -e "$item" ] && FILES="$FILES $item"
+          done
 
+          if [ -n "$FILES" ]; then
+            tar czf backup/AW1000-full-package.tar.gz $FILES
+          else
+            echo "No files or directories to back up."
+          fi
+          
       - name: Create a release
         uses: ncipollo/release-action@v1
         with:

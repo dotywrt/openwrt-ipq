@@ -1,45 +1,122 @@
-name: Archive and Release
-
+name: TAR TRYY
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main-nss
 
 jobs:
-  backup:
+  build:
+    if: github.ref == 'refs/heads/main-nss'
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          ref: main-nss
+          fetch-depth: 0       # Fetch full history
+          # fetch-depth: 100   # Adjust depth based on how far back the bump commit is
+          # fetch-depth: 1     # default shallow clone
 
-      - name: Set variables with date and time
-        id: vars
+      - name: Show the content of feeds.conf.default
+        run: |  
+          echo "Show the content of feeds.conf.default"
+          cat ./feeds.conf.default
+          
+      - name: Show available disk space before cleanup
         run: |
-          TAG_NAME=backup-$(date +%Y-%m-%d-%H-%M)
-          ARCHIVE_NAME=archive-${TAG_NAME}.tar.gz
-          echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
-          echo "archive_name=$ARCHIVE_NAME" >> $GITHUB_OUTPUT
+          echo "Available disk space before cleanup:"
+          df -h
 
-      - name: Create backup archive
+      - name: Free up disk space
+        run: |
+          echo "Removing unnecessary apt packages and cache..."
+          sudo apt-get autoremove -y
+          sudo apt-get clean
+          sudo rm -rf /var/lib/apt/lists/*
+
+          echo "Removing Android SDK..."
+          sudo rm -rf /usr/local/lib/android
+
+          echo "Removing .NET Core..."
+          sudo rm -rf /usr/share/dotnet
+
+          echo "Removing PowerShell..."
+          sudo rm -rf /opt/microsoft/powershell
+
+          echo "Removing CodeQL Analysis..."
+          sudo rm -rf /opt/hostedtoolcache/CodeQL
+
+          echo "Removing Docker images..."
+          docker image prune -a -f
+
+          echo "Removing unused snap packages..."
+          sudo rm -rf /var/lib/snapd/cache/*
+
+          echo "Removing unused Homebrew packages..."
+          sudo rm -rf /home/linuxbrew/.linuxbrew/
+
+          echo "Removing unused build tools..."
+          sudo rm -rf /usr/local/share/boost
+          sudo rm -rf /usr/local/lib/node_modules
+          sudo rm -rf /usr/share/swift
+          sudo rm -rf /usr/share/kotlin
+          sudo rm -rf /usr/share/rust
+
+          echo "Removing TeamCity and Azul Systems content..."
+          sudo rm -rf /opt/az
+          sudo rm -rf /opt/hostedtoolcache/Java_Adopt_jdk
+          sudo rm -rf /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk
+
+          echo "Removing large cached content..."
+          sudo rm -rf /var/cache/apt
+          sudo rm -rf /var/lib/gems
+          sudo rm -rf /var/lib/docker/tmp/*
+          sudo rm -rf /usr/local/lib/python*/dist-packages
+          sudo rm -rf /usr/local/lib/python*/site-packages
+          sudo rm -rf /opt/hostedtoolcache/*/*
+
+      - name: Show available disk space after cleanup
+        run: |
+          echo "Available disk space after cleanup:"
+          df -h
+
+      - name: Show kernel, gcc version, CPU core count, total memory
+        run: |
+          echo "Show kernel version:"
+          uname -a
+          echo "Show gcc version:"
+          gcc --version
+          echo "Show CPU core count:"
+          nproc
+          echo "Show CPU model"
+          cat /proc/cpuinfo | grep "model name" | head -1
+          echo "Show Total memory:"
+          free -h
+          
+
+      - name: Get SHORT SHA 
+        run: echo "SHORT_SHA=`echo ${GITHUB_SHA} | cut -c1-8`" >> $GITHUB_ENV
+
+      - name: Get the current date
+        run: echo "NOW=$(date +%F-%H%M)" >> $GITHUB_ENV
+
+      - name: Full backup
         run: |
           mkdir -p backup
-          tar -czvf backup/${{ steps.vars.outputs.archive_name }} $(find . -maxdepth 1 \( -type f -o -name 'bin' -o -name 'feeds' \))
+          tar czf backup/backup.tar.gz \
+          key-build.pub key-build key-build.ucert key-build.ucert.revoke \
+          feeds.conf.default .config \
+          bin/ feeds/
 
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+      - name: Create a release
+        uses: ncipollo/release-action@v1
         with:
-          tag_name: ${{ steps.vars.outputs.tag_name }}
-          name: "Backup ${{ steps.vars.outputs.tag_name }}"
-          body: "Automated backup created on ${{ steps.vars.outputs.tag_name }}"
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Upload archive to release
-        uses: softprops/action-gh-release@v2
-        with:
-          files: backup/${{ steps.vars.outputs.archive_name }}
-          tag_name: ${{ steps.vars.outputs.tag_name }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          name: "AW1000 NSS Big Image ${{ env.NOW }}"
+          tag: "AW1000-nss-${{ env.SHORT_SHA }}-${{ env.NOW }}"
+          generateReleaseNotes: true
+          makeLatest: false
+          artifacts: |
+            backup/*
+            bin/targets/qualcommax/ipq807x/*.*
+          token: "${{ secrets.GITHUB_TOKEN }}"

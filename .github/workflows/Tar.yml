@@ -104,10 +104,19 @@ jobs:
       - name: Full backup
         run: |
           mkdir -p backup
-          tar czf backup/backup.tar.gz \
-          key-build.pub key-build key-build.ucert key-build.ucert.revoke \
-          feeds.conf.default .config \
-          bin/ feeds/
+          FILES=""
+          for item in \
+            key-build.pub key-build key-build.ucert key-build.ucert.revoke \
+            feeds.conf.default .config \
+            bin feeds; do
+            [ -e "$item" ] && FILES="$FILES $item"
+          done
+
+          if [ -n "$FILES" ]; then
+            tar czf backup/backup.tar.gz $FILES
+          else
+            echo "No files or directories to back up."
+          fi
 
       - name: Create a release
         uses: ncipollo/release-action@v1

@@ -139,7 +139,7 @@ jobs:
 
       - name: Copy Bin File & SSH Key
         run: |
-          makedir -p backup
+          mkdir -p backup
           cp -r bin backup/bin
           cp key-build.pub key-build key-build.ucert key-build.ucert.revoke \
           feeds.conf.default .config backup/
@@ -149,7 +149,7 @@ jobs:
           mkdir -p upload
           tar czf AW1000-full-package.tar.gz backup
           cp AW1000-full-package.tar.gz upload/
-          
+       
       - name: Create a release
         uses: ncipollo/release-action@v1
         with:
@@ -158,6 +158,6 @@ jobs:
           generateReleaseNotes: true
           makeLatest: false
           artifacts: |
-            backup/*
+            upload/*
             bin/targets/qualcommax/ipq807x/*.*
           token: "${{ secrets.GITHUB_TOKEN }}"

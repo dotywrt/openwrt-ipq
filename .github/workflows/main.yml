@@ -153,11 +153,11 @@ jobs:
       - name: Create a release
         uses: ncipollo/release-action@v1
         with:
-          name: "AW1000 NSS Big Image ${{ env.NOW }}"
-          tag: "AW1000-nss-${{ env.SHORT_SHA }}-${{ env.NOW }}"
+          name: "AW1000-NSS-B3 ${{ env.NOW }}"
+          tag: "AW1000-NSS-B3-${{ env.SHORT_SHA }}-${{ env.NOW }}"
           generateReleaseNotes: true
           makeLatest: false
           artifacts: |
             upload/*
-            bin/targets/qualcommax/ipq807x/*.*
+            # bin/targets/qualcommax/ipq807x/*.*
           token: "${{ secrets.GITHUB_TOKEN }}"

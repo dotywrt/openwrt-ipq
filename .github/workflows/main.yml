@@ -159,5 +159,4 @@ jobs:
           makeLatest: false
           artifacts: |
             upload/*
-            # bin/targets/qualcommax/ipq807x/*.*
           token: "${{ secrets.GITHUB_TOKEN }}"

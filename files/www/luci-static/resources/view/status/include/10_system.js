@@ -90,8 +90,9 @@ return baseclass.extend({
             _('Kernel'), boardinfo.kernel,
             _('Time'), datestr,
             _('Uptime'), systeminfo.uptime ? '%t'.format(systeminfo.uptime) : null,
-            _('CPU Usage'), (cpuusage && cpuusage.cpuusage) ? cpuusage.cpuusage : null,
-            _('CPU Temp'), (tempinfo && tempinfo.tempinfo) ? tempinfo.tempinfo : null,
+            _('CPU Stat'), 
+                ((cpuusage && cpuusage.cpuusage) ? cpuusage.cpuusage : 'N/A') + ' / ' + 
+                ((tempinfo && tempinfo.tempinfo) ? tempinfo.tempinfo : 'N/A')
         ];
 
         var table = E('table', { 'class': 'table' });

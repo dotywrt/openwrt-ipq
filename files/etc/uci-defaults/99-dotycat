@@ -64,6 +64,22 @@ CONF="/etc/dnsmasq.conf"
 DNS_LINE="log-facility=/dev/null"
 grep -qF "$DNS_LINE" "$CONF" || echo "$DNS_LINE" >> "$CONF"
 
+# Clear nodes from passwall
+if [ -f "/etc/config/passwall" ]; then
+  for section in $(uci show passwall | grep "=nodes" | cut -d. -f2 | cut -d= -f1); do
+    uci -q delete passwall.$section
+  done
+  uci commit passwall
+fi
+
+# Clear nodes from passwall2
+if [ -f "/etc/config/passwall2" ]; then
+  for section in $(uci show passwall2 | grep "=nodes" | cut -d. -f2 | cut -d= -f1); do
+    uci -q delete passwall2.$section
+  done
+  uci commit passwall2
+fi
+
 echo "AT+CFUN=1" > /dev/ttyUSB3
 
 exit 0

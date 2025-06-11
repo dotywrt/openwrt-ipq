@@ -1,3 +1,5 @@
+
+'use strict';
 'require baseclass';
 'require fs';
 'require rpc';
@@ -27,15 +29,17 @@ var callCPUInfo = rpc.declare({
     method: 'getCPUInfo'
 });
 
-var callCPUUsage = rpc.declare({
-    object: 'luci',
-    method: 'getCPUUsage'
-});
+function callCPUUsage() {
+    return L.Request.get(L.url('rpc', 'getCPUUsage')).then(function(res) {
+        return res.json();
+    });
+}
 
-var callTempInfo = rpc.declare({
-    object: 'luci',
-    method: 'getTempInfo'
-});
+function callTempInfo() {
+    return L.Request.get(L.url('rpc', 'getTempInfo')).then(function(res) {
+        return res.json();
+    });
+}
 
 return baseclass.extend({
     title: _('System'),
@@ -46,8 +50,8 @@ return baseclass.extend({
             L.resolveDefault(callSystemInfo(), {}),
             L.resolveDefault(callCPUBench(), {}),
             L.resolveDefault(callCPUInfo(), {}),
-            L.resolveDefault(callCPUUsage(), {}),
-            L.resolveDefault(callTempInfo(), {}),
+            callCPUUsage(),
+            callTempInfo(),
             L.resolveDefault(callLuciVersion(), {
                 revision: _('unknown version'),
                 branch: 'LuCI'
@@ -85,13 +89,10 @@ return baseclass.extend({
             _('Version'), (L.isObject(boardinfo.release) ? boardinfo.release.description : ''),
             _('Kernel'), boardinfo.kernel,
             _('Time'), datestr,
-            _('Uptime'), systeminfo.uptime ? '%t'.format(systeminfo.uptime) : null
+            _('Uptime'), systeminfo.uptime ? '%t'.format(systeminfo.uptime) : null,
+            _('CPU Usage'), (cpuusage && cpuusage.cpuusage) ? cpuusage.cpuusage : null,
+            _('CPU Temp'), (tempinfo && tempinfo.tempinfo) ? tempinfo.tempinfo : null,
         ];
-
-        if (tempinfo.tempinfo) {
-            fields.splice(6, 0, _('Temperature'));
-            fields.splice(7, 0, tempinfo.tempinfo);
-        }
 
         var table = E('table', { 'class': 'table' });
 

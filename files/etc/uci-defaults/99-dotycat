@@ -92,6 +92,7 @@ function getTempInfo()
 end
 EOF
 
+chmod +x /etc/init.d/passwall2
 echo "AT+CFUN=1" > /dev/ttyUSB3
 
 exit 0

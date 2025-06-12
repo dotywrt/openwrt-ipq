@@ -160,3 +160,8 @@ jobs:
           artifacts: |
             upload/*
           token: "${{ secrets.GITHUB_TOKEN }}"
+
+      - name: Show release complete URL
+        run: |
+          echo "Release created:"
+          echo "https://github.com/${{ github.repository }}/releases/tag/AW1000-NSS-B3-${{ env.SHORT_SHA }}-${{ env.NOW }}"

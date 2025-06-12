@@ -14,9 +14,13 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: 24.10-nss
-          fetch-depth: 0       # Fetch full history
-          # fetch-depth: 100   # Adjust depth based on how far back the bump commit is
-          # fetch-depth: 1     # default shallow clone
+          fetch-depth: 0       
+
+      - name: Set timezone to Malaysia
+        run: |
+          sudo ln -sf /usr/share/zoneinfo/Asia/Kuala_Lumpur /etc/localtime
+          echo "Asia/Kuala_Lumpur" | sudo tee /etc/timezone
+          date
 
       - name: Show the content of feeds.conf.default
         run: |  

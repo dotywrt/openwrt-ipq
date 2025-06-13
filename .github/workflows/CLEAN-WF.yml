@@ -2,8 +2,6 @@ name: Cleanup Old Workflows, Tags, and Releases
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: '0 3 * * 1' # Runs every Monday at 3 AM UTC
 
 permissions:
   actions: write
@@ -14,30 +12,26 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Install GitHub CLI
+      - name: Install GitHub CLI (no apt)
         run: |
-          sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-key C99B11DEB97541F0
-          sudo apt-add-repository https://cli.github.com/packages
-          sudo apt update
-          sudo apt install gh -y
+          curl -sSL https://github.com/cli/cli/releases/download/v2.47.0/gh_2.47.0_linux_amd64.tar.gz | tar -xz
+          sudo cp gh_2.47.0_linux_amd64/bin/gh /usr/local/bin/
 
-      - name: Authenticate with GitHub CLI
+      - name: Auth with GitHub CLI
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh auth login --with-token <<< "${GH_TOKEN}"
+        run: echo "$GH_TOKEN" | gh auth login --with-token
 
       - name: Delete old workflow runs (keep latest)
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh api -H "Accept: application/vnd.github+json" \
-            /repos/${{ github.repository }}/actions/runs?per_page=100 | \
-            jq -r '.workflow_runs | sort_by(.created_at) | reverse | .[1:][] | .id' | \
-            while read run_id; do
-              echo "Deleting run: $run_id"
-              gh api --method DELETE /repos/${{ github.repository }}/actions/runs/$run_id
-            done
+          gh api -H "Accept: application/vnd.github+json" /repos/${{ github.repository }}/actions/runs?per_page=100 | \
+          jq -r '.workflow_runs | sort_by(.created_at) | reverse | .[1:][] | .id' | \
+          while read run_id; do
+            echo "Deleting run: $run_id"
+            gh api --method DELETE /repos/${{ github.repository }}/actions/runs/$run_id
+          done
 
       - name: Delete old tags (keep latest)
         env:

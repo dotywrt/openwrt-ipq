@@ -1,0 +1,55 @@
+name: Cleanup Old Runs, Tags, Releases
+
+on:
+  workflow_dispatch: # You can also use schedule for automation
+  schedule:
+    - cron: '0 3 * * 1' # Runs every Monday at 3:00 UTC
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup GitHub CLI
+        uses: cli/gh-actions/setup-gh@v2
+
+      - name: Authenticate GitHub CLI
+        run: gh auth setup-git
+
+      - name: Delete old workflow runs
+        run: |
+          echo "Fetching old workflow runs..."
+          gh api -H "Accept: application/vnd.github+json" \
+            /repos/${{ github.repository }}/actions/runs?per_page=100 | \
+            jq -r '.workflow_runs | sort_by(.created_at) | reverse | .[1:][] | .id' | \
+            while read run_id; do
+              echo "Deleting workflow run $run_id"
+              gh api --method DELETE /repos/${{ github.repository }}/actions/runs/$run_id
+            done
+
+      - name: Get all tags
+        run: |
+          echo "Getting all tags..."
+          TAGS=$(gh api repos/${{ github.repository }}/tags --paginate --jq '.[].name')
+          LATEST_TAG=$(echo "$TAGS" | head -n 1)
+          for TAG in $TAGS; do
+            if [ "$TAG" != "$LATEST_TAG" ]; then
+              echo "Deleting tag: $TAG"
+              git push origin :refs/tags/$TAG
+            fi
+          done
+
+      - name: Delete old releases
+        run: |
+          echo "Getting releases..."
+          LATEST_TAG=$(gh api repos/${{ github.repository }}/tags --paginate --jq '.[].name' | head -n 1)
+          RELEASES=$(gh release list --limit 1000 | awk '{print $1}')
+          for REL in $RELEASES; do
+            if [ "$REL" != "$LATEST_TAG" ]; then
+              echo "Deleting release: $REL"
+              gh release delete "$REL" -y
+            fi
+          done

@@ -139,6 +139,4 @@ done
 # Re-trigger modem
 echo "AT+CFUN=1" > /dev/ttyUSB3
 
-reboot
-
 exit 0

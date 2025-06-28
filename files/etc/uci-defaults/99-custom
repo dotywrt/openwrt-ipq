@@ -11,7 +11,7 @@ uci commit system
 uci set wireless.radio0.disabled='0'
 uci set wireless.radio0.country='MY'
 uci set wireless.radio0.channel='6'
-uci set wireless.@wifi-iface[0].ssid='GOTYCAT 2.4G'
+uci set wireless.@wifi-iface[0].ssid='DOTYWRT 2G'
 uci set wireless.@wifi-iface[0].encryption='psk2'
 uci set wireless.@wifi-iface[0].key='dotycat.com'
 uci set wireless.@wifi-iface[0].mode='ap'
@@ -93,8 +93,7 @@ uci set firewall.@defaults[0].flow_offloading='0'
 uci set firewall.@defaults[0].flow_offloading_hw='0'
 
 # === Global settings ===
-uci set network.globals.packet_steering='1'
-uci set network.globals.steering_flows='128'
+uci set network.globals.packet_steering='2'
 uci set uhttpd.main.rfc1918_filter='0'
 
 # === Apply all configs ===

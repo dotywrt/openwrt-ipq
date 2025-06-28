@@ -1,10 +1,41 @@
 #!/bin/sh
 
-# Remove IPv6 WAN interface
+# === Set Hostname and Timezone (Malaysia) ===
+uci set system.@system[0].hostname='DOTYWRT'
+uci set system.@system[0].timezone='+08'
+uci set system.@system[0].zonename='Asia/Kuala_Lumpur'
+uci commit system
+/etc/init.d/system reload
+
+# === Configure 2.4GHz WiFi ===
+uci set wireless.radio0.disabled='0'
+uci set wireless.radio0.country='MY'
+uci set wireless.radio0.channel='6'
+uci set wireless.@wifi-iface[0].ssid='GOTYCAT 2.4G'
+uci set wireless.@wifi-iface[0].encryption='psk2'
+uci set wireless.@wifi-iface[0].key='dotycat.com'
+uci set wireless.@wifi-iface[0].mode='ap'
+uci set wireless.@wifi-iface[0].network='lan'
+
+# === Configure 5GHz WiFi ===
+uci set wireless.radio1.disabled='0'
+uci set wireless.radio1.country='MY'
+uci set wireless.radio1.channel='36'
+uci add wireless wifi-iface
+uci set wireless.@wifi-iface[-1].device='radio1'
+uci set wireless.@wifi-iface[-1].mode='ap'
+uci set wireless.@wifi-iface[-1].ssid='DOTYCAT 5G'
+uci set wireless.@wifi-iface[-1].encryption='psk2'
+uci set wireless.@wifi-iface[-1].key='dotycat.com'
+uci set wireless.@wifi-iface[-1].network='lan'
+uci commit wireless
+wifi reload
+
+# === Remove IPv6 WAN interface ===
 uci delete network.wan6 2>/dev/null
 uci commit network
 
-# Create nftables config to force TTL / Hoplimit to 64
+# === Create nftables config to force TTL / Hoplimit to 64 ===
 NFT_DIR="/etc/nftables.d"
 NFT_FILE="$NFT_DIR/ttl64.nft"
 mkdir -p "$NFT_DIR"
@@ -32,23 +63,22 @@ chain mangle_postrouting_hoplimit64 {
 }
 EOF
 
-# Ensure rc.local contains key commands
+# === rc.local patch ===
 RC_LOCAL="/etc/rc.local"
 LINE0="uci set network.globals.packet_steering='2'"
 LINE1="uci commit network"
 LINE2='echo "AT+CFUN=1" > /dev/ttyUSB3'
-
 grep -qF "$LINE0" "$RC_LOCAL" || sed -i "/^exit 0/i $LINE0" "$RC_LOCAL"
 grep -qF "$LINE1" "$RC_LOCAL" || sed -i "/^exit 0/i $LINE1" "$RC_LOCAL"
 grep -qF "$LINE2" "$RC_LOCAL" || sed -i "/^exit 0/i $LINE2" "$RC_LOCAL"
 chmod +x "$RC_LOCAL"
 
-# Add logging suppression for dnsmasq
+# === Suppress dnsmasq logging ===
 CONF="/etc/dnsmasq.conf"
 DNS_LINE="log-facility=/dev/null"
 grep -qF "$DNS_LINE" "$CONF" || echo "$DNS_LINE" >> "$CONF"
 
-# Configure Quectel WAN interface
+# === Configure Quectel WAN interface ===
 uci set network.wan='interface'
 uci set network.wan.proto='quectel'
 uci set network.wan.auth='none'
@@ -58,25 +88,26 @@ uci set network.wan.pdptype='ipv4v6'
 uci set network.wan.device='/dev/cdc-wdm0'
 uci set network.wan.apn='internet'
 
-# Disable NAT offloading
+# === Disable NAT offloading ===
 uci set firewall.@defaults[0].flow_offloading='0'
 uci set firewall.@defaults[0].flow_offloading_hw='0'
 
-# Global settings
+# === Global settings ===
 uci set network.globals.packet_steering='1'
 uci set network.globals.steering_flows='128'
 uci set uhttpd.main.rfc1918_filter='0'
 
-# Apply changes
+# === Apply all configs ===
 uci commit network
-uci commit uhttpd
+uci commit wireless
 uci commit firewall
+uci commit uhttpd
 
 /etc/init.d/uhttpd restart
 /etc/init.d/firewall restart
 /etc/init.d/network restart
 
-# Kernel TCP tuning
+# === Kernel TCP tuning ===
 uci -q batch <<EOF
 add system sysctl
 set system.@sysctl[-1].option='net.core.rmem_max'
@@ -126,17 +157,15 @@ add system sysctl
 set system.@sysctl[-1].option='net.ipv4.tcp_tw_reuse'
 set system.@sysctl[-1].value='1'
 EOF
-
 uci commit
+/etc/init.d/sysctl restart
 
-# Set CPU scaling governor to performance
+# === Set CPU to performance mode ===
 for cpu in /sys/devices/system/cpu/cpu[0-9]*; do
   echo performance > "$cpu/cpufreq/scaling_governor" 2>/dev/null
 done
 
-/etc/init.d/sysctl restart
-
-# Re-trigger modem
+# === Re-trigger modem ===
 echo "AT+CFUN=1" > /dev/ttyUSB3
 
 exit 0

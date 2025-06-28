@@ -1,0 +1,144 @@
+#!/bin/sh
+
+# Remove IPv6 WAN interface
+uci delete network.wan6 2>/dev/null
+uci commit network
+
+# Create nftables config to force TTL / Hoplimit to 64
+NFT_DIR="/etc/nftables.d"
+NFT_FILE="$NFT_DIR/ttl64.nft"
+mkdir -p "$NFT_DIR"
+rm -f "$NFT_DIR"/*
+cat << 'EOF' > "$NFT_FILE"
+chain mangle_prerouting_ttl64 {
+  type filter hook prerouting priority 300; policy accept;
+  counter ip ttl set 64
+}
+chain mangle_postrouting_ttl64 {
+  type filter hook postrouting priority 300; policy accept;
+  counter ip ttl set 64
+}
+chain mangle_prerouting_hoplimit64 {
+  type filter hook prerouting priority 300; policy accept;
+  counter ip6 hoplimit set 64
+  iifname "wwan0" ip6 hoplimit set 64
+  iifname "wwan0_1" ip6 hoplimit set 64
+}
+chain mangle_postrouting_hoplimit64 {
+  type filter hook postrouting priority 300; policy accept;
+  counter ip6 hoplimit set 64
+  oifname "wwan0" ip6 hoplimit set 64
+  oifname "wwan0_1" ip6 hoplimit set 64
+}
+EOF
+
+# Ensure rc.local contains key commands
+RC_LOCAL="/etc/rc.local"
+LINE0="uci set network.globals.packet_steering='2'"
+LINE1="uci commit network"
+LINE2='echo "AT+CFUN=1" > /dev/ttyUSB3'
+
+grep -qF "$LINE0" "$RC_LOCAL" || sed -i "/^exit 0/i $LINE0" "$RC_LOCAL"
+grep -qF "$LINE1" "$RC_LOCAL" || sed -i "/^exit 0/i $LINE1" "$RC_LOCAL"
+grep -qF "$LINE2" "$RC_LOCAL" || sed -i "/^exit 0/i $LINE2" "$RC_LOCAL"
+chmod +x "$RC_LOCAL"
+
+# Add logging suppression for dnsmasq
+CONF="/etc/dnsmasq.conf"
+DNS_LINE="log-facility=/dev/null"
+grep -qF "$DNS_LINE" "$CONF" || echo "$DNS_LINE" >> "$CONF"
+
+# Configure Quectel WAN interface
+uci set network.wan='interface'
+uci set network.wan.proto='quectel'
+uci set network.wan.auth='none'
+uci set network.wan.delay='5'
+uci set network.wan.mtu='1500'
+uci set network.wan.pdptype='ipv4v6'
+uci set network.wan.device='/dev/cdc-wdm0'
+uci set network.wan.apn='internet'
+
+# Disable NAT offloading
+uci set firewall.@defaults[0].flow_offloading='0'
+uci set firewall.@defaults[0].flow_offloading_hw='0'
+
+# Global settings
+uci set network.globals.packet_steering='1'
+uci set network.globals.steering_flows='128'
+uci set uhttpd.main.rfc1918_filter='0'
+
+# Apply changes
+uci commit network
+uci commit uhttpd
+uci commit firewall
+
+/etc/init.d/uhttpd restart
+/etc/init.d/firewall restart
+/etc/init.d/network restart
+
+# Kernel TCP tuning
+uci -q batch <<EOF
+add system sysctl
+set system.@sysctl[-1].option='net.core.rmem_max'
+set system.@sysctl[-1].value='26214400'
+
+add system sysctl
+set system.@sysctl[-1].option='net.core.wmem_max'
+set system.@sysctl[-1].value='26214400'
+
+add system sysctl
+set system.@sysctl[-1].option='net.core.netdev_max_backlog'
+set system.@sysctl[-1].value='5000'
+
+add system sysctl
+set system.@sysctl[-1].option='net.ipv4.tcp_rmem'
+set system.@sysctl[-1].value='4096 87380 16777216'
+
+add system sysctl
+set system.@sysctl[-1].option='net.ipv4.tcp_wmem'
+set system.@sysctl[-1].value='4096 65536 16777216'
+
+add system sysctl
+set system.@sysctl[-1].option='net.ipv4.tcp_congestion_control'
+set system.@sysctl[-1].value='bbr'
+
+add system sysctl
+set system.@sysctl[-1].option='net.core.default_qdisc'
+set system.@sysctl[-1].value='fq'
+
+add system sysctl
+set system.@sysctl[-1].option='net.ipv4.tcp_low_latency'
+set system.@sysctl[-1].value='1'
+
+add system sysctl
+set system.@sysctl[-1].option='net.ipv4.tcp_timestamps'
+set system.@sysctl[-1].value='1'
+
+add system sysctl
+set system.@sysctl[-1].option='net.ipv4.tcp_sack'
+set system.@sysctl[-1].value='1'
+
+add system sysctl
+set system.@sysctl[-1].option='net.ipv4.tcp_window_scaling'
+set system.@sysctl[-1].value='1'
+
+add system sysctl
+set system.@sysctl[-1].option='net.ipv4.tcp_tw_reuse'
+set system.@sysctl[-1].value='1'
+EOF
+
+uci commit
+
+# Set CPU scaling governor to performance
+for cpu in /sys/devices/system/cpu/cpu[0-9]*; do
+  echo performance > "$cpu/cpufreq/scaling_governor" 2>/dev/null
+done
+
+/etc/init.d/sysctl restart
+
+# Re-trigger modem
+echo "AT+CFUN=1" > /dev/ttyUSB3
+
+reboot
+
+exit 0

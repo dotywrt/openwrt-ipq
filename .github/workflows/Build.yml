@@ -96,7 +96,6 @@ jobs:
       - name: Prepare config (NFT only)
         run: |
           cp ./nss-setup/config-nss.seed .config
-          [ -d ./nss-setup/nss ] && cp -r ./nss-setup/nss files
           make defconfig
 
       - name: Download package sources

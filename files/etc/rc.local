@@ -1,5 +1,0 @@
-# Put your custom commands here that should be executed once
-# the system init finished. By default this file does nothing.
-
-echo "AT+CFUN=1" > /dev/ttyUSB3
-exit 0

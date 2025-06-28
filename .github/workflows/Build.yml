@@ -6,7 +6,7 @@ on:
       project_prefix:
         description: 'Project prefix (e.g., DOTYWRT)'
         required: false
-        default: 'ImmortalWrt'
+        default: 'OpenlWrt'
 
       version:
         description: 'Firmware version (e.g., 1.2)'
